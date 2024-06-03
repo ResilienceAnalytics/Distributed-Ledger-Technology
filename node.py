@@ -17,10 +17,9 @@ def mine():
     Mine a new block.
     """
     last_block = dlt.last_block
-    last_proof = last_block['proof']
+    last_proof = last_block.proof
     proof = dlt.proof_of_authority(last_proof)
 
-    # Reward for finding the proof
     dlt.new_data({
         'users': '0',
         'data': [],
@@ -38,15 +37,14 @@ def mine():
         'receiver_wallet_hash': ''
     })
 
-    # Forge the new block by adding it to the chain
     block = dlt.new_block(proof)
 
     response = {
         'message': 'New Block Forged',
-        'index': block['index'],
-        'data': block['data'],
-        'proof': block['proof'],
-        'previous_hash': block['previous_hash'],
+        'index': block.index,
+        'data': block.data,
+        'proof': block.proof,
+        'previous_hash': block.previous_hash,
     }
     return jsonify(response), 200
 
@@ -57,12 +55,10 @@ def new_transaction():
     """
     values = request.get_json()
 
-    # Check that the required fields are in the POST data
     required = ['users', 'data', 'dh_parameters', 'server_public_key', 'receiver_public_key', 'sender_public_key']
     if not all(k in values for k in required):
         return 'Missing values', 400
 
-    # Create a new transaction
     index = dlt.new_data(values)
 
     response = {'message': f'Transaction will be added to Block {index}'}
@@ -74,7 +70,7 @@ def full_chain():
     Return the full blockchain.
     """
     response = {
-        'chain': dlt.chain,
+        'chain': [block.__dict__ for block in dlt.chain],
         'length': len(dlt.chain),
     }
     return jsonify(response), 200
@@ -102,23 +98,22 @@ def register_nodes():
 @app.route('/nodes/resolve', methods=['GET'])
 def consensus():
     """
-    Consensus algorithm to resolve    conflicts.
+    Consensus algorithm to resolve conflicts.
     """
     replaced = dlt.resolve_conflicts()
 
     if replaced:
         response = {
             'message': 'Our chain was replaced',
-            'new_chain': dlt.chain
+            'new_chain': [block.__dict__ for block in dlt.chain]
         }
     else:
         response = {
             'message': 'Our chain is authoritative',
-            'chain': dlt.chain
+            'chain': [block.__dict__ for block in dlt.chain]
         }
 
     return jsonify(response), 200
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
-
